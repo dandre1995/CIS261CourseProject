@@ -1,11 +1,104 @@
 """ Jack Dandre
- CIS261- Object Oriented Programming I
+ CIS261- Object Oriented Programmin I
  Course Project Phase 1: Create and Call Functions with Parameters
- Course Project Phase 2: Using Lists and Dictionaries to store and retreive data"""
-
-
+ Course Project Phase 2: Using Lists and Dictionaries to store and retreive data
+ Couse Project Phase 3: Creating, L\Listing and Retrieving files
+ Course Project Phase 4: Add Basic Security  to the Application """
 import re
 from datetime import datetime
+
+class Login:
+    """Class to handle user authentication with three properties: User ID, Password, and Authorization"""
+    
+    def __init__(self, user_id="", password="", authorization=""):
+        self.user_id = user_id
+        self.password = password
+        self.authorization = authorization
+
+def create_login_file():
+    """Create and populate the login file with user information"""
+    login_data = [
+        "admin|adminpass|Admin",
+        "user1|userpass|User",
+        "user2|pass123|User"
+    ]
+    
+    try:
+        with open("login.txt", "w") as file:
+            for record in login_data:
+                file.write(record + "\n")
+    except IOError:
+        print("Error creating login file.")
+
+def validate_user_input(user_id, password):
+    """Validate that user ID and password are not empty and meet basic requirements"""
+    if not user_id or not user_id.strip():
+        return False, "User ID cannot be empty."
+    
+    if not password or not password.strip():
+        return False, "Password cannot be empty."
+    
+    return True, "Valid input."
+
+def login_process():
+    """Handle the login process and return Login object with user information"""
+    login_user = Login()
+    
+    # Open and read login file
+    try:
+        with open("login.txt", "r") as file:
+            login_records = []
+            for line in file:
+                parts = line.strip().split('|')
+                if len(parts) == 3:
+                    login_records.append({
+                        'user_id': parts[0],
+                        'password': parts[1], 
+                        'authorization': parts[2]
+                    })
+    except FileNotFoundError:
+        print("Login file not found. Creating default login file...")
+        create_login_file()
+        return login_process()  # Retry after creating file
+    
+    # Get user input
+    while True:
+        user_id = input("Enter User ID: ").strip()
+        password = input("Enter Password: ").strip()
+        
+        # Validate input
+        is_valid, message = validate_user_input(user_id, password)
+        if not is_valid:
+            print(message)
+            continue
+        
+        # Check if user exists in records
+        user_found = False
+        for record in login_records:
+            if record['user_id'] == user_id:
+                user_found = True
+                if record['password'] == password:
+                    # Successful login
+                    login_user.user_id = user_id
+                    login_user.password = password
+                    login_user.authorization = record['authorization']
+                    print(f"Login successful! Welcome {user_id}")
+                    return login_user
+                else:
+                    print("Invalid password. Please try again.")
+                    break
+        
+        if not user_found:
+            print("User ID does not exist. Please try again.")
+
+def display_user_info(login_obj):
+    """Display user ID, password, and authorization for all users"""
+    print("\nUser Information:")
+    print("-" * 40)
+    print(f"User ID: {login_obj.user_id}")
+    print(f"Password: {login_obj.password}")
+    print(f"Authorization: {login_obj.authorization}")
+    print("-" * 40)
 
 def validate_date(date_str):
     """Validate date format mm/dd/yyyy"""
@@ -161,47 +254,73 @@ def generate_report(filename):
     print("=" * 80)
 
 def main():
-    print("Employee Payroll System")
-    print("Enter employee data or type 'End' to finish\n")
+    print("Employee Payroll System - Login Required")
+    print("=" * 50)
+    
+    # Handle login process first
+    current_user = login_process()
+    
+    # Display user information after successful login
+    display_user_info(current_user)
+    
+    # Check authorization and modify functionality accordingly
+    if current_user.authorization == "Admin":
+        print("Admin access granted - Full functionality available")
+        can_enter_data = True
+        can_display_data = True
+    elif current_user.authorization == "User":
+        print("User access granted - Display data only")
+        can_enter_data = False
+        can_display_data = True
+    else:
+        print("Unknown authorization level")
+        can_enter_data = False
+        can_display_data = False
     
     filename = "employees.txt"
     
-    # Data entry loop
-    while True:
-        user_input = input("Press Enter to add employee or type 'End' to finish: ").strip()
-        if user_input.lower() == "end":
-            break
+    # Data entry loop (only for Admin users)
+    if can_enter_data:
+        print("\nEnter employee data or type 'End' to finish\n")
         
-        from_date, to_date = get_date_range()
-        name = get_employee_name()
-        hours = get_total_hours()
-        rate = get_hourly_rate()
-        tax_rate = get_tax_rate()
-        
-        gross_pay, income_tax, net_pay = calculate_pay(hours, rate, tax_rate)
-        
-        # Create employee record
-        employee_data = {
-            'from_date': from_date,
-            'to_date': to_date,
-            'name': name,
-            'hours': hours,
-            'rate': rate,
-            'tax_rate': tax_rate,
-            'gross_pay': gross_pay,
-            'income_tax': income_tax,
-            'net_pay': net_pay
-        }
-        
-        # Save to file
-        save_employee_data(filename, employee_data)
-        
-        # Display pay stub
-        display_employee_paystub(from_date, to_date, name, hours, rate, gross_pay,
-                                 tax_rate, income_tax, net_pay)
+        while True:
+            user_input = input("Press Enter to add employee or type 'End' to finish: ").strip()
+            if user_input.lower() == "end":
+                break
+            
+            from_date, to_date = get_date_range()
+            name = get_employee_name()
+            hours = get_total_hours()
+            rate = get_hourly_rate()
+            tax_rate = get_tax_rate()
+            
+            gross_pay, income_tax, net_pay = calculate_pay(hours, rate, tax_rate)
+            
+            # Create employee record
+            employee_data = {
+                'from_date': from_date,
+                'to_date': to_date,
+                'name': name,
+                'hours': hours,
+                'rate': rate,
+                'tax_rate': tax_rate,
+                'gross_pay': gross_pay,
+                'income_tax': income_tax,
+                'net_pay': net_pay
+            }
+            
+            # Save to file
+            save_employee_data(filename, employee_data)
+            
+            # Display pay stub
+            display_employee_paystub(from_date, to_date, name, hours, rate, gross_pay,
+                                     tax_rate, income_tax, net_pay)
     
-    # Generate report
-    generate_report(filename)
+    # Generate report (available for both Admin and User)
+    if can_display_data:
+        generate_report(filename)
+    
+    print("\nThank you for using the Employee Payroll System!")
 
 if __name__ == "__main__":
     main()
